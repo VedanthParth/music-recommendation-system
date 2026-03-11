@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoundCluster — Music Recommender &amp; Cluster Visualizer</title>
+  <meta name="description"
+    content="Explore 1M+ Spotify tracks with K-Medoids clustering and an AI music recommender." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js" defer></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+
+  <!-- ── Floating orbs ───────────────────────────────────────────────────── -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" fill="#1DB954" />
+            <path
+              d="M7 9.5C9.5 8.5 13.5 8.5 16 9.5M7.5 12C9.8 11.2 14.2 11.2 16.5 12M8.5 14.5C10.3 13.9 13.7 13.9 15.5 14.5"
+              stroke="white" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </div>
+        <span class="logo-text">SoundCluster</span>
+      </div>
+      <nav class="header-nav">
+        <span class="demo-badge">🎵 1.1M Spotify Tracks</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── Hero + Filter Section ──────────────────────────────────────────── -->
+  <section class="hero" id="hero-section">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span> K-Medoids Clustering &amp; Music Recommender
+      </div>
+      <h1 class="hero-title">
+        Discover the <span class="gradient-text">DNA</span><br />of Your Music
+      </h1>
+      <p class="hero-subtitle">
+        Over 1.1 million Spotify tracks clustered by audio features.
+        Filter by genre, year, and popularity — then get personalised recommendations.
+      </p>
+
+      <!-- Filter Panel -->
+      <div class="filter-panel">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="genre-select">Genre</label>
+            <select id="genre-select" class="filter-select">
+              <option value="">All Genres</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Year Range</label>
+            <div class="range-row">
+              <input type="number" id="year-from" class="filter-input-short" value="2015" min="2000" max="2023" />
+              <span class="range-sep">–</span>
+              <input type="number" id="year-to" class="filter-input-short" value="2023" min="2000" max="2023" />
+            </div>
+          </div>
+          <div class="filter-group">
+            <label for="pop-slider">Min Popularity: <strong id="pop-display">0</strong></label>
+            <input type="range" id="pop-slider" min="0" max="80" step="5" value="0"
+              oninput="document.getElementById('pop-display').textContent=this.value" />
+          </div>
+          <button class="btn btn-primary" id="analyze-btn" onclick="analyzePlaylist()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
+            </svg>
+            Analyze
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature pills -->
+    <div class="feature-pills">
+      <div class="pill"><span>🎵</span> Audio Features</div>
+      <div class="pill"><span>🔬</span> K-Medoids Clustering</div>
+      <div class="pill"><span>📊</span> PCA Scatter</div>
+      <div class="pill"><span>🕸️</span> Radar Charts</div>
+      <div class="pill"><span>🤖</span> AI Recommender</div>
+    </div>
+  </section>
+
+  <!-- ── Error Banner ────────────────────────────────────────────────────── -->
+  <div id="error-banner" class="error-banner hidden">
+    <span id="error-message"></span>
+    <button onclick="closeError()">✕</button>
+  </div>
+
+  <!-- ── Loading Overlay ─────────────────────────────────────────────────── -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loading-card">
+      <div class="spinner-wrap">
+        <div class="spinner"></div>
+        <div class="spinner-inner"></div>
+      </div>
+      <p class="loading-title" id="loading-title">Sampling tracks…</p>
+      <div class="loading-steps">
+        <div class="step" id="step-1">
+          <div class="step-dot active"></div>
+          <span>Sampling from dataset</span>
+        </div>
+        <div class="step" id="step-2">
+          <div class="step-dot"></div>
+          <span>Preparing audio features</span>
+        </div>
+        <div class="step" id="step-3">
+          <div class="step-dot"></div>
+          <span>Running K-Medoids clustering</span>
+        </div>
+        <div class="step" id="step-4">
+          <div class="step-dot"></div>
+          <span>Rendering visualizations</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Results Section ─────────────────────────────────────────────────── -->
+  <section class="results-section hidden" id="results-section">
+
+    <!-- Dataset Info Card -->
+    <div class="playlist-info-card" id="playlist-info-card">
+      <div class="playlist-info-icon">📀</div>
+      <div class="playlist-details">
+        <div class="playlist-meta-label">Dataset Sample</div>
+        <h2 id="playlist-name" class="playlist-name"></h2>
+        <p id="playlist-owner" class="playlist-owner"></p>
+        <div class="playlist-stats">
+          <div class="stat-chip"><span id="track-count">0</span> Tracks</div>
+          <div class="stat-chip cluster-stat"><span id="cluster-count">0</span> Clusters (K-Medoids)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cluster Summary Cards -->
+    <div class="section-header">
+      <h3 class="section-title">Cluster Overview</h3>
+      <p class="section-sub">Each cluster is defined by its medoid — the most representative track in that group</p>
+    </div>
+    <div class="cluster-cards" id="cluster-cards"></div>
+
+    <!-- Visualization Tabs + K-Slider -->
+    <div class="viz-tabs-wrap">
+      <div class="viz-tabs">
+        <button class="tab-btn active" data-tab="scatter" onclick="switchTab('scatter')">📊 2D Scatter</button>
+        <button class="tab-btn" data-tab="scatter3d" onclick="switchTab('scatter3d')">🌐 3D Scatter</button>
+        <button class="tab-btn" data-tab="radar" onclick="switchTab('radar')">🕸️ Radar Chart</button>
+        <button class="tab-btn" data-tab="heatmap" onclick="switchTab('heatmap')">🔥 Heatmap</button>
+        <button class="tab-btn" data-tab="bar" onclick="switchTab('bar')">📈 Feature Bars</button>
+      </div>
+      <div class="k-control">
+        <label>Clusters (k): <strong id="k-display">auto</strong></label>
+        <input type="range" id="k-slider" min="2" max="10" step="1" value="4" oninput="onKSlider(this.value)" />
+        <button class="btn btn-sm btn-ghost" onclick="reCluster()">Re-cluster</button>
+      </div>
+    </div>
+
+    <!-- Tab Panels -->
+    <div class="tab-panels">
+      <div class="tab-panel active" id="tab-scatter">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h4>PCA 2D Cluster Scatter</h4>
+            <p class="chart-desc">Songs projected into 2D via PCA • hover for details • ★ = cluster medoid</p>
+          </div>
+          <div id="scatter-plot" class="chart-container"></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="tab-scatter3d">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h4>PCA 3D Cluster Scatter</h4>
+            <p class="chart-desc">3-component PCA — drag to rotate</p>
+          </div>
+          <div id="scatter3d-plot" class="chart-container"></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="tab-radar">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h4>Audio Feature Radar</h4>
+            <p class="chart-desc">Average audio feature profile per cluster</p>
+          </div>
+          <div id="radar-plot" class="chart-container"></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="tab-heatmap">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h4>Feature Correlation Heatmap</h4>
+            <p class="chart-desc">Pearson correlation between audio features across all sampled tracks</p>
+          </div>
+          <div id="heatmap-plot" class="chart-container"></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="tab-bar">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h4>Feature Averages by Cluster</h4>
+            <p class="chart-desc">Grouped bar chart of per-cluster feature means</p>
+          </div>
+          <div id="bar-plot" class="chart-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Recommender Section ─────────────────────────────────────────── -->
+    <div class="section-header" style="margin-top:3.5rem;">
+      <h3 class="section-title">🤖 Music Recommender</h3>
+      <p class="section-sub">Click any song in the table below to get recommendations from the full 1.1M dataset</p>
+    </div>
+    <div class="recommender-panel" id="recommender-panel">
+      <div class="seed-display">
+        <span class="seed-label">Seed song:</span>
+        <span id="seed-name" class="seed-name">— click a song row to select —</span>
+        <button class="btn btn-sm btn-primary" id="recommend-btn" onclick="fetchRecommendations()" disabled>
+          Find Similar
+        </button>
+        <div class="filter-group" style="flex-direction:row;align-items:center;gap:0.5rem;">
+          <label style="font-size:0.8rem;color:var(--text-muted)">Same genre only</label>
+          <input type="checkbox" id="genre-lock" style="accent-color:var(--green);width:16px;height:16px;" />
+        </div>
+      </div>
+      <div id="rec-results" class="rec-results hidden"></div>
+    </div>
+
+    <!-- Songs Table -->
+    <div class="section-header" style="margin-top:2.5rem;">
+      <h3 class="section-title">All Songs</h3>
+      <div class="table-controls">
+        <input type="text" id="table-search" class="table-search" placeholder="Search songs…"
+          oninput="filterTable(this.value)" />
+        <select id="cluster-filter" class="cluster-select" onchange="filterTable()">
+          <option value="">All Clusters</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="songs-table" id="songs-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th onclick="sortTable('name')" class="sortable">Song ↕</th>
+            <th onclick="sortTable('artists')" class="sortable">Artist ↕</th>
+            <th onclick="sortTable('genre')" class="sortable">Genre ↕</th>
+            <th onclick="sortTable('cluster')" class="sortable">Cluster ↕</th>
+            <th onclick="sortTable('danceability')" class="sortable">Dance ↕</th>
+            <th onclick="sortTable('energy')" class="sortable">Energy ↕</th>
+            <th onclick="sortTable('valence')" class="sortable">Valence ↕</th>
+            <th onclick="sortTable('tempo')" class="sortable">Tempo ↕</th>
+            <th onclick="sortTable('popularity')" class="sortable">Pop ↕</th>
+          </tr>
+        </thead>
+        <tbody id="songs-tbody"></tbody>
+      </table>
+    </div>
+
+  </section>
+
+  <!-- ── Footer ───────────────────────────────────────────────────────────── -->
+  <footer class="app-footer">
+    <p>SoundCluster • K-Medoids clustering on 1.1M Spotify tracks • Built with scikit-learn &amp; Plotly.js</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+
+</html>
