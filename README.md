@@ -1,78 +1,40 @@
-# 🎵 SoundCluster — Spotify Playlist Audio Feature Visualizer
+# 🎵 SoundCluster — Spotify Audio-Feature Clustering & Recommender
 
-Analyze any Spotify playlist and visualize its songs as K-means clusters based on audio features like danceability, energy, valence, tempo, and more.
+Clusters tracks from a Kaggle Spotify audio-features dataset and recommends similar songs using content-based similarity. Live Spotify API access wasn't usable for this (Spotify's audio-features data isn't accessible for bulk analysis like this), so the project runs on a downloaded Kaggle dataset instead.
 
 ## Features
 
-- 🔐 **Spotify OAuth2 login** — Secure authorization code flow
-- 📋 **Playlist support** — Any public or private playlist you have access to
-- 🎚️ **Audio features** — Fetches all 9 Spotify audio features per track
-- 🔬 **K-Means clustering** — Auto-selects optimal k (or let you choose with a slider)
-- 📊 **5 interactive visualizations** (Plotly.js):
-  - PCA 2D Cluster Scatter
-  - PCA 3D Cluster Scatter (rotatable)
-  - Feature Radar Chart per cluster
-  - Feature Correlation Heatmap
-  - Grouped Feature Bar Chart
-- 🔎 **Songs Table** — Sortable, searchable, filterable by cluster
+- 📂 **Data source** — a local Kaggle Spotify audio-features dataset (`spotify_data.csv`), not the live Spotify API
+- 🎚️ **Audio features** — 9 features per track: danceability, energy, loudness, speechiness, acousticness, instrumentalness, liveness, valence, tempo
+- 🔬 **K-Medoids clustering** — custom PAM (Partition Around Medoids) implementation, no external clustering library
+- 🧭 **Recommender** — given one or more seed tracks, returns the most similar tracks from the dataset using cosine similarity on standardized features
+- 📊 **Visualizations** (Plotly.js) — PCA-based cluster views and related charts
+- 🔎 **Genre & stats endpoints** for exploring the dataset
 
 ## Setup
 
-### 1. Create a Spotify Developer App
-
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create a new app
-3. Add `http://localhost:5000/callback` as a **Redirect URI**
-4. Copy your **Client ID** and **Client Secret**
-
-### 2. Configure Environment
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and fill in your credentials:
-
-```env
-SPOTIFY_CLIENT_ID=your_client_id_here
-SPOTIFY_CLIENT_SECRET=your_client_secret_here
-SPOTIFY_REDIRECT_URI=http://localhost:5000/callback
-FLASK_SECRET_KEY=any_random_long_string
-```
-
-### 3. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Run
-
-```bash
-python app.py
-```
-
-Open `http://localhost:5000` in your browser.
-
-## Usage
-
-1. Click **Login with Spotify** and authorize the app
-2. Paste a Spotify playlist URL (e.g. `https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M`)
-3. Click **Analyze**
-4. Explore the 5 visualizations and the songs table
-5. Adjust the **cluster slider** and click **Re-cluster** to experiment
+1. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+2. Place a Kaggle Spotify audio-features CSV as `spotify_data.csv` in the project root (this file is not committed to the repo — see `.gitignore`)
+3. Run:
+   ```
+   python app.py
+   ```
+4. Open http://localhost:5000 in your browser
 
 ## Project Structure
 
 ```
-Spotify-music-recommender/
-├── app.py              # Flask backend (OAuth2, Spotify API, clustering)
-├── requirements.txt    # Python dependencies
-├── .env.example        # Environment variable template
+music-recommendation-system/
+├── app.py               # Flask backend: CSV loading, K-Medoids clustering, recommender, PCA
+├── requirements.txt     # Python dependencies
+├── spotify_test.py      # Early experiment with live Spotify API access, superseded by the CSV approach
 ├── templates/
-│   └── index.html      # Main SPA template
+│   └── index.html
 └── static/
-    ├── style.css        # Dark-mode design system
+    ├── style.css
     └── app.js           # Frontend logic + Plotly.js charts
 ```
 
@@ -90,7 +52,6 @@ Spotify-music-recommender/
 | Valence | Musical positiveness (0–1) |
 | Tempo | Estimated tempo in BPM |
 
-
 ## Team and Credits
 
-This was a team project. Core implementation (Flask backend, OAuth2 flow, K-Means clustering, and all Plotly.js visualizations) by Sanjeb (github.com/Sanjeb). Forked here as part of shared coursework.
+This was a team project. Core implementation (Flask backend, K-Medoids clustering, similarity-based recommender, and Plotly.js visualizations) by Sanjeb (github.com/Sanjeb). Forked here as part of shared coursework.
