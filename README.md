@@ -91,4 +91,6 @@ Spotify-music-recommender/
 | Tempo | Estimated tempo in BPM |
 
 
-Vedanth was not here
+## Team and Credits
+
+This was a team project. Core implementation (Flask backend, OAuth2 flow, K-Means clustering, and all Plotly.js visualizations) by Sanjeb (github.com/Sanjeb). Forked here as part of shared coursework.
